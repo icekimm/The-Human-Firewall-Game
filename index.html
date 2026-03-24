@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Firewall Challenge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #060608;
+        }
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            color: #e0e0e0;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+        }
+        /* SCAN LINE OVERLAY */
+        
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px);
+            pointer-events: none;
+            z-index: 999;
+        }
+        /* HEADER */
+        
+        #hfw-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 28px;
+            background: #080a0d;
+            border-bottom: 1px solid #1a2a3a;
+            gap: 16px;
+        }
+        
+        #hfw-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 3px;
+            white-space: nowrap;
+        }
+        
+        .stat-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .stat-label {
+            font-size: 9px;
+            color: #446;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        #hfw-hp-bar-wrap {
+            flex: 1;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        #hfw-hp-bar-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #446;
+            letter-spacing: 2px;
+        }
+        
+        #hfw-hp-track {
+            height: 6px;
+            background: #111;
+            border: 1px solid #1a2a3a;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        #hfw-hp-fill {
+            height: 100%;
+            width: 100%;
+            background: #00ff88;
+            transition: width 0.3s, background 0.3s;
+            border-radius: 3px;
+        }
+        
+        #level-badge {
+            font-size: 10px;
+            padding: 4px 14px;
+            border-radius: 3px;
+            letter-spacing: 2px;
+            font-weight: 700;
+            border: 1px solid;
+        }
+        
+        #level-badge.easy {
+            color: #00ff88;
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.06);
+        }
+        
+        #level-badge.medium {
+            color: #ffaa00;
+            border-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.06);
+        }
+        
+        #level-badge.hard {
+            color: #ff3333;
+            border-color: #ff3333;
+            background: rgba(255, 51, 51, 0.06);
+        }
+        /* ARENA */
+        
+        #hfw-arena {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #080a0c;
+            cursor: crosshair;
+        }
+        /* Grid lines */
+        
+        #hfw-arena::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(30, 58, 95, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 58, 95, 0.08) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+        
+        #hfw-internet {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 68px;
+            background: linear-gradient(90deg, #050608, #070a0e);
+            border-right: 1px dashed #1a2a3a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            z-index: 5;
+        }
+        
+        #hfw-internet svg {
+            opacity: 0.5;
+        }
+        
+        #hfw-internet-label {
+            font-size: 7px;
+            color: #336;
+            letter-spacing: 2px;
+            writing-mode: vertical-rl;
+        }
+        
+        #hfw-firewall {
+            position: absolute;
+            left: 210px;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            background: #0a1f3a;
+            border-left: 2px solid #1a4fa0;
+            border-right: 2px solid #1a4fa0;
+            z-index: 5;
+        }
+        
+        #hfw-firewall::before {
+            content: 'FIREWALL';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            white-space: nowrap;
+            font-size: 8px;
+            color: #1a4fa0;
+            letter-spacing: 3px;
+        }
+        
+        #hfw-firewall::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(180deg, rgba(26, 79, 160, 0.15) 0px, rgba(26, 79, 160, 0.15) 4px, transparent 4px, transparent 12px);
+            animation: fwScroll 4s linear infinite;
+        }
+        
+        @keyframes fwScroll {
+            from {
+                background-position: 0 0;
+            }
+            to {
+                background-position: 0 100%;
+            }
+        }
+        
+        #hfw-server {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background: #07090c;
+            border-left: 1px solid #1a2a3a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            z-index: 5;
+        }
+        
+        #hfw-server-label {
+            font-size: 7px;
+            color: #446;
+            letter-spacing: 1px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        #server-status {
+            font-size: 8px;
+            padding: 2px 8px;
+            border-radius: 2px;
+            letter-spacing: 1px;
+        }
+        
+        #server-status.ok {
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+        
+        #server-status.hit {
+            color: #ff3333;
+            border: 1px solid #ff3333;
+        }
+        /* PACKETS */
+        
+        .hfw-pkt {
+            position: absolute;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: crosshair;
+            z-index: 10;
+            transition: filter 0.05s;
+            will-change: transform;
+        }
+        
+        .hfw-pkt:hover {
+            filter: brightness(1.5);
+        }
+        
+        .hfw-pkt.safe {
+            background: #071a10;
+            border: 1.5px solid #00cc66;
+            color: #00ff88;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.12), inset 0 0 4px rgba(0, 255, 136, 0.05);
+        }
+        
+        .hfw-pkt.threat {
+            background: #1a0707;
+            border: 1.5px solid #cc2222;
+            color: #ff4444;
+            box-shadow: 0 0 8px rgba(255, 51, 51, 0.2), inset 0 0 4px rgba(255, 51, 51, 0.08);
+            animation: threatPulse 0.8s ease-in-out infinite;
+        }
+        
+        .hfw-pkt.suspicious {
+            background: #1a1000;
+            border: 1.5px solid #cc8800;
+            color: #ffaa00;
+            box-shadow: 0 0 8px rgba(255, 170, 0, 0.12);
+        }
+        
+        @keyframes threatPulse {
+            0%,
+            100% {
+                border-color: #cc2222;
+            }
+            50% {
+                border-color: #ff5555;
+            }
+        }
+        /* BURST */
+        
+        .hfw-burst {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            animation: burst 0.4s ease-out forwards;
+        }
+        
+        @keyframes burst {
+            0% {
+                opacity: 1;
+                transform: scale(0.2);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(2.2);
+            }
+        }
+        
+        .hfw-burst.threat {
+            background: radial-gradient(circle, rgba(255, 60, 60, 0.7), transparent 70%);
+        }
+        
+        .hfw-burst.miss {
+            background: radial-gradient(circle, rgba(255, 170, 0, 0.6), transparent 70%);
+        }
+        
+        .hfw-burst.safe {
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.5), transparent 70%);
+        }
+        /* SCORE POPUP */
+        
+        .score-pop {
+            position: absolute;
+            pointer-events: none;
+            z-index: 30;
+            font-family: 'Orbitron', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            animation: scorePop 0.8s ease-out forwards;
+        }
+        
+        @keyframes scorePop {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+        }
+        /* LOG */
+        
+        #hfw-log {
+            flex-shrink: 0;
+            height: 52px;
+            padding: 4px 20px;
+            overflow: hidden;
+            background: #050607;
+            border-top: 1px solid #0e1820;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 1px;
+        }
+        
+        .log-line {
+            font-size: 10px;
+            color: #334;
+            animation: logFade 0.2s;
+        }
+        
+        .log-line.ok {
+            color: #008844;
+        }
+        
+        .log-line.threat-log {
+            color: #aa2222;
+        }
+        
+        .log-line.warn {
+            color: #886600;
+        }
+        
+        @keyframes logFade {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        /* FLASH */
+        
+        #hfw-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            background: rgba(255, 30, 30, 0.18);
+            transition: opacity 0.1s;
+        }
+        
+        #hfw-flash.active {
+            opacity: 1;
+        }
+        /* OVERLAY */
+        
+        #hfw-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 5, 8, 0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .overlay-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(18px, 3vw, 28px);
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .overlay-sub {
+            font-size: 11px;
+            color: #446;
+            letter-spacing: 3px;
+            margin-bottom: 32px;
+        }
+        
+        .level-select {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .lvl-btn {
+            font-family: 'Share Tech Mono', monospace;
+            background: transparent;
+            font-size: 12px;
+            padding: 14px 28px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            border-radius: 3px;
+            transition: background 0.15s, transform 0.1s;
+            outline: none;
+        }
+        
+        .lvl-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .lvl-btn.easy {
+            border: 2px solid #00ff88;
+            color: #00ff88;
+        }
+        
+        .lvl-btn.easy:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .lvl-btn.medium {
+            border: 2px solid #ffaa00;
+            color: #ffaa00;
+        }
+        
+        .lvl-btn.medium:hover {
+            background: rgba(255, 170, 0, 0.1);
+        }
+        
+        .lvl-btn.hard {
+            border: 2px solid #ff3333;
+            color: #ff3333;
+        }
+        
+        .lvl-btn.hard:hover {
+            background: rgba(255, 51, 51, 0.1);
+        }
+        
+        .instructions {
+            font-size: 11px;
+            color: #446;
+            text-align: center;
+            line-height: 2;
+            max-width: 420px;
+            border: 1px solid #0e1820;
+            padding: 16px 24px;
+            border-radius: 4px;
+        }
+        
+        .instructions .r {
+            color: #ff4444;
+        }
+        
+        .instructions .g {
+            color: #00ff88;
+        }
+        
+        .instructions .y {
+            color: #ffaa00;
+        }
+        /* GAME OVER */
+        
+        .gameover-box {
+            border: 1px solid #1a0707;
+            background: #080a0c;
+            padding: 24px 48px;
+            margin: 20px 0;
+            text-align: center;
+            min-width: 280px;
+        }
+        
+        .go-label {
+            font-size: 9px;
+            color: #446;
+            letter-spacing: 3px;
+            margin-bottom: 4px;
+        }
+        
+        .go-val {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+        }
+        
+        .go-val2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffaa00;
+        }
+        
+        .restart-btn {
+            font-family: 'Share Tech Mono', monospace;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 12px 36px;
+            letter-spacing: 2px;
+            border: 2px solid #ff3333;
+            color: #ff3333;
+            transition: background 0.15s;
+            border-radius: 3px;
+            margin-top: 8px;
+        }
+        
+        .restart-btn:hover {
+            background: rgba(255, 51, 51, 0.1);
+        }
+        /* WAVE ALERT */
+        
+        #wave-alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(18px, 3vw, 32px);
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #fff;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            text-shadow: 0 0 20px rgba(255, 170, 0, 0.6);
+            transition: opacity 0.4s;
+            text-align: center;
+        }
+        
+        #wave-alert.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="hfw-flash"></div>
+
+    <!-- HEADER -->
+    <div id="hfw-header">
+        <div id="hfw-title">HUMAN FIREWALL</div>
+
+        <div class="stat-block">
+            <div class="stat-label">SCORE</div>
+            <div class="stat-value" id="el-score">0</div>
+        </div>
+
+        <div id="hfw-hp-bar-wrap">
+            <div id="hfw-hp-bar-row">
+                <span>SERVER HEALTH</span>
+                <span id="el-hp">100%</span>
+            </div>
+            <div id="hfw-hp-track">
+                <div id="hfw-hp-fill"></div>
+            </div>
+        </div>
+
+        <div class="stat-block">
+            <div class="stat-label">WAVE</div>
+            <div class="stat-value" id="el-wave">1</div>
+        </div>
+        <div class="stat-block">
+            <div class="stat-label">BLOCKED</div>
+            <div class="stat-value" id="el-blocked">0</div>
+        </div>
+
+        <div id="level-badge" class="easy">EASY</div>
+    </div>
+
+    <!-- ARENA -->
+    <div id="hfw-arena">
+        <div id="hfw-internet">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <circle cx="14" cy="14" r="12" stroke="#1a4fa0" stroke-width="1.5"/>
+      <ellipse cx="14" cy="14" rx="5" ry="12" stroke="#1a4fa0" stroke-width="1"/>
+      <line x1="2" y1="14" x2="26" y2="14" stroke="#1a4fa0" stroke-width="1"/>
+      <line x1="5" y1="8" x2="23" y2="8" stroke="#1a4fa0" stroke-width="0.8"/>
+      <line x1="5" y1="20" x2="23" y2="20" stroke="#1a4fa0" stroke-width="0.8"/>
+    </svg>
+            <div id="hfw-internet-label">INTERNET</div>
+        </div>
+
+        <div id="hfw-firewall"></div>
+
+        <div id="hfw-server">
+            <svg width="32" height="36" viewBox="0 0 32 36" fill="none">
+      <rect x="2" y="2" width="28" height="9" rx="2" fill="#0a0f18" stroke="#1a4fa0" stroke-width="1.5"/>
+      <circle cx="26" cy="6.5" r="2" fill="#00ff88"/>
+      <rect x="5" y="4" width="14" height="1.5" rx="0.75" fill="#1a3a5a"/>
+      <rect x="2" y="13" width="28" height="9" rx="2" fill="#0a0f18" stroke="#1a4fa0" stroke-width="1.5"/>
+      <circle cx="26" cy="17.5" r="2" fill="#00ff88" id="srv-led1"/>
+      <rect x="5" y="15" width="10" height="1.5" rx="0.75" fill="#1a3a5a"/>
+      <rect x="2" y="24" width="28" height="9" rx="2" fill="#0a0f18" stroke="#1a4fa0" stroke-width="1.5"/>
+      <circle cx="26" cy="28.5" r="2" fill="#00cc55" id="srv-led2"/>
+    </svg>
+            <div id="hfw-server-label">SERVER</div>
+            <div id="server-status" class="ok">SECURE</div>
+        </div>
+
+        <div id="wave-alert"></div>
+    </div>
+
+    <!-- LOG -->
+    <div id="hfw-log"></div>
+
+    <!-- OVERLAY -->
+    <div id="hfw-overlay">
+        <div class="overlay-title" style="color:#00ff88">HUMAN FIREWALL</div>
+        <div class="overlay-sub">NETWORK DEFENSE SYSTEM v2.0</div>
+
+        <div class="level-select">
+            <button class="lvl-btn easy" onclick="startGame('easy')">EASY</button>
+            <button class="lvl-btn medium" onclick="startGame('medium')">MEDIUM</button>
+            <button class="lvl-btn hard" onclick="startGame('hard')">HARD</button>
+        </div>
+
+        <div class="instructions">
+            Click <span class="r">RED THREATS</span> to drop malicious packets.<br> Let <span class="g">GREEN SAFE</span> packets pass to score.<br>
+            <span class="y">YELLOW SUSPICIOUS</span> — click twice to inspect.<br> If a threat reaches the server, health drops.<br> Health = 0 → <span class="r">NETWORK COMPROMISED</span>
+        </div>
+    </div>
+
+    <script>
+        const arena = document.getElementById('hfw-arena');
+        const overlay = document.getElementById('hfw-overlay');
+        const elScore = document.getElementById('el-score');
+        const elHp = document.getElementById('el-hp');
+        const elWave = document.getElementById('el-wave');
+        const elBlocked = document.getElementById('el-blocked');
+        const hpFill = document.getElementById('hfw-hp-fill');
+        const logEl = document.getElementById('hfw-log');
+        const waveAlert = document.getElementById('wave-alert');
+        const flashEl = document.getElementById('hfw-flash');
+        const lvlBadge = document.getElementById('level-badge');
+        const srvStatus = document.getElementById('server-status');
+
+        let packets = [],
+            score = 0,
+            health = 100,
+            wave = 1,
+            blocked = 0;
+        let running = false,
+            spawnTimer, waveTimer, raf, currentLevel;
+
+        const LEVELS = {
+            easy: {
+                spawnBase: 2000,
+                spawnMin: 1000,
+                waveInterval: 22000,
+                spawnDec: 130,
+                speedMult: 0.75,
+                threatRatio: 0.28,
+                hpLoss: 10,
+                missPenalty: 6
+            },
+            medium: {
+                spawnBase: 1500,
+                spawnMin: 800,
+                waveInterval: 18000,
+                spawnDec: 160,
+                speedMult: 1.0,
+                threatRatio: 0.36,
+                hpLoss: 15,
+                missPenalty: 8
+            },
+            hard: {
+                spawnBase: 1000,
+                spawnMin: 500,
+                waveInterval: 14000,
+                spawnDec: 200,
+                speedMult: 1.4,
+                threatRatio: 0.45,
+                hpLoss: 20,
+                missPenalty: 12
+            },
+        };
+
+        const LOG_SAFE = ['ACK handshake verified', 'HTTPS traffic — authorized', 'DNS query resolved — clean', 'TLS certificate valid', 'HTTP GET — permitted', 'TCP connection established'];
+        const LOG_THREAT = ['MALICIOUS payload — DROPPED', 'SQL injection attempt BLOCKED', 'Port scan detected — DROP', 'DDoS burst intercepted', 'Botnet C2 packet — KILLED', 'Exploit kit signature — BLOCKED'];
+        const LOG_BREACH = ['!! BREACH — threat reached server !!', '!! INTRUSION — system integrity at risk', '!! MALWARE DELIVERED to server'];
+        const LOG_MISS = ['Warning: safe packet incorrectly dropped', 'False positive — authorized traffic blocked'];
+        const LOG_SUSP = ['Suspicious packet quarantined', 'Deep packet inspection triggered — threat confirmed'];
+
+        function ts() {
+            return new Date().toISOString().substr(11, 8);
+        }
+
+        function rnd(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function addLog(type, msg) {
+            const e = document.createElement('div');
+            e.className = 'log-line ' + (type === 'breach' || type === 'threat' ? 'threat-log' : type === 'ok' ? 'ok' : 'warn');
+            e.textContent = `[${ts()}] ${msg || rnd(type === 'breach' ? LOG_BREACH : type === 'threat' ? LOG_THREAT : type === 'ok' ? LOG_SAFE : type === 'miss' ? LOG_MISS : LOG_SUSP)}`;
+            logEl.prepend(e);
+            while (logEl.children.length > 4) logEl.removeChild(logEl.lastChild);
+        }
+
+        function burst(x, y, type, size = 60) {
+            const b = document.createElement('div');
+            b.className = 'hfw-burst ' + type;
+            b.style.cssText = `width:${size}px;height:${size}px;left:${x - size/2}px;top:${y - size/2}px;`;
+            arena.appendChild(b);
+            setTimeout(() => b.remove(), 450);
+        }
+
+        function scorePop(x, y, text, color) {
+            const p = document.createElement('div');
+            p.className = 'score-pop';
+            p.style.cssText = `left:${x}px;top:${y}px;color:${color};`;
+            p.textContent = text;
+            arena.appendChild(p);
+            setTimeout(() => p.remove(), 850);
+        }
+
+        function flashArena() {
+            flashEl.classList.add('active');
+            setTimeout(() => flashEl.classList.remove('active'), 160);
+        }
+
+        function updateHP() {
+            hpFill.style.width = health + '%';
+            hpFill.style.background = health > 60 ? '#00ff88' : health > 30 ? '#ffaa00' : '#ff3333';
+            elHp.textContent = health + '%';
+        }
+
+        function serverHit() {
+            srvStatus.textContent = 'BREACH';
+            srvStatus.className = 'hit';
+            setTimeout(() => {
+                srvStatus.textContent = 'SECURE';
+                srvStatus.className = 'ok';
+            }, 600);
+        }
+
+        function removePkt(pkt) {
+            packets = packets.filter(p => p.id !== pkt.id);
+            if (pkt.el.parentNode) pkt.el.remove();
+        }
+
+        function spawnPacket() {
+            if (!running) return;
+            const cfg = LEVELS[currentLevel];
+            const ah = arena.offsetHeight;
+            const aw = arena.offsetWidth;
+
+            const types = ['safe', 'safe', 'threat'];
+            if (Math.random() < cfg.threatRatio) types.push('threat');
+            if (wave >= 2) types.push(Math.random() < 0.2 ? 'suspicious' : 'safe');
+            const type = rnd(types);
+
+            const SAFE_LABELS = ['HTTP', 'DNS', 'TLS', 'ACK', 'HTTPS', 'NTP', 'UDP'];
+            const THREAT_LABELS = ['SYN', 'DDOS', 'EXEC', 'ROOT', 'BOMB', 'RAT', 'XSS'];
+            const SUSP_LABELS = ['???', 'UNK', 'SCAN', '????'];
+
+            const speedBase = {
+                safe: 1.1,
+                threat: 1.5,
+                suspicious: 0.9
+            };
+            const speed = (speedBase[type] + wave * 0.25) * cfg.speedMult;
+
+            const W = 58,
+                H = 36;
+            const topY = 10 + Math.random() * (ah - H - 20);
+
+            const el = document.createElement('div');
+            el.className = 'hfw-pkt ' + type;
+            el.style.cssText = `width:${W}px;height:${H}px;left:70px;top:${topY}px;`;
+            el.textContent = rnd(type === 'safe' ? SAFE_LABELS : type === 'threat' ? THREAT_LABELS : SUSP_LABELS);
+            arena.appendChild(el);
+
+            const pkt = {
+                el,
+                type,
+                x: 70,
+                speed,
+                y: topY,
+                id: Date.now() + Math.random(),
+                hits: 0,
+                w: W,
+                h: H
+            };
+            packets.push(pkt);
+
+            el.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                if (!running) return;
+                const cx = pkt.x + W / 2,
+                    cy = pkt.y + H / 2;
+
+                if (pkt.type === 'threat') {
+                    const pts = 15 + wave * 3;
+                    score += pts;
+                    blocked++;
+                    elScore.textContent = score;
+                    elBlocked.textContent = blocked;
+                    burst(cx, cy, 'threat', 70);
+                    scorePop(pkt.x, pkt.y - 10, '+' + pts, '#ff4444');
+                    addLog('threat');
+                    removePkt(pkt);
+                } else if (pkt.type === 'suspicious') {
+                    pkt.hits++;
+                    if (pkt.hits >= 2) {
+                        const pts = 10;
+                        score += pts;
+                        blocked++;
+                        elScore.textContent = score;
+                        elBlocked.textContent = blocked;
+                        burst(cx, cy, 'threat', 60);
+                        scorePop(pkt.x, pkt.y - 10, '+' + pts, '#ffaa00');
+                        addLog('susp');
+                        removePkt(pkt);
+                    } else {
+                        el.style.opacity = '0.45';
+                        el.textContent = '?INSPECT';
+                    }
+                } else {
+                    // clicked safe packet
+                    health = Math.max(0, health - cfg.missPenalty);
+                    updateHP();
+                    flashArena();
+                    serverHit();
+                    burst(cx, cy, 'miss', 55);
+                    scorePop(pkt.x, pkt.y - 10, '-' + cfg.missPenalty + 'HP', '#ffaa00');
+                    addLog('miss');
+                    removePkt(pkt);
+                    if (health <= 0) {
+                        gameOver();
+                        return;
+                    }
+                }
+            });
+        }
+
+        function tick() {
+            if (!running) return;
+            const cfg = LEVELS[currentLevel];
+            const aw = arena.offsetWidth;
+            const serverX = aw - 72;
+
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                p.x += p.speed;
+                p.el.style.left = p.x + 'px';
+
+                if (p.x >= serverX) {
+                    if (p.type === 'threat') {
+                        health = Math.max(0, health - cfg.hpLoss);
+                        updateHP();
+                        flashArena();
+                        serverHit();
+                        burst(serverX, p.y + p.h / 2, 'threat', 80);
+                        addLog('breach');
+                        removePkt(p);
+                        if (health <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    } else if (p.type === 'suspicious') {
+                        health = Math.max(0, health - Math.floor(cfg.hpLoss / 2));
+                        updateHP();
+                        flashArena();
+                        addLog('breach');
+                        removePkt(p);
+                        if (health <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    } else {
+                        score += 3;
+                        elScore.textContent = score;
+                        addLog('ok');
+                        removePkt(p);
+                    }
+                }
+            }
+            raf = requestAnimationFrame(tick);
+        }
+
+        function showWaveAlert(n) {
+            const labels = ['', 'WAVE 1 — DEFENSE ACTIVE', 'WAVE 2 — ESCALATING', 'WAVE 3 — CRITICAL THREAT', 'WAVE 4 — MAXIMUM ALERT', 'WAVE 5 — TOTAL WARFARE'];
+            waveAlert.textContent = labels[n] || `WAVE ${n} — INCOMING`;
+            waveAlert.classList.add('show');
+            setTimeout(() => waveAlert.classList.remove('show'), 1800);
+        }
+
+        function startGame(level) {
+            currentLevel = level;
+            const cfg = LEVELS[level];
+
+            packets.forEach(p => p.el.remove());
+            packets = [];
+            score = 0;
+            health = 100;
+            wave = 1;
+            blocked = 0;
+            running = true;
+
+            elScore.textContent = 0;
+            elBlocked.textContent = 0;
+            elWave.textContent = 1;
+            updateHP();
+            lvlBadge.className = level;
+            lvlBadge.textContent = level.toUpperCase();
+            srvStatus.textContent = 'SECURE';
+            srvStatus.className = 'ok';
+            overlay.style.display = 'none';
+            logEl.innerHTML = '';
+
+            addLog('ok', 'Firewall initialized — ' + level.toUpperCase() + ' mode active');
+            showWaveAlert(1);
+
+            let spawnInterval = cfg.spawnBase;
+
+            function resetSpawnTimer() {
+                clearInterval(spawnTimer);
+                spawnTimer = setInterval(() => {
+                    if (running) spawnPacket();
+                }, spawnInterval);
+            }
+            resetSpawnTimer();
+
+            waveTimer = setInterval(() => {
+                if (!running) return;
+                wave++;
+                elWave.textContent = wave;
+                spawnInterval = Math.max(cfg.spawnMin, cfg.spawnBase - (wave - 1) * cfg.spawnDec);
+                resetSpawnTimer();
+                showWaveAlert(wave);
+                addLog('warn', `>> WAVE ${wave} INCOMING — threat intensity ++`);
+            }, cfg.waveInterval);
+
+            raf = requestAnimationFrame(tick);
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(spawnTimer);
+            clearInterval(waveTimer);
+            cancelAnimationFrame(raf);
+            packets.forEach(p => p.el.remove());
+            packets = [];
+
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+    <div class="overlay-title" style="color:#ff3333">YOUR NETWORK IS ATTACKED</div>
+    <div class="overlay-sub" style="color:#cc2222;letter-spacing:4px">FIREWALL BREACHED — SYSTEM COMPROMISED</div>
+    <div class="gameover-box">
+      <div class="go-label">FINAL SCORE</div>
+      <div class="go-val">${score.toLocaleString()}</div>
+      <div style="margin: 14px 0; border-top: 1px solid #1a0707;"></div>
+      <div style="display:flex;gap:40px;justify-content:center;margin-top:12px;">
+        <div>
+          <div class="go-label">THREATS BLOCKED</div>
+          <div class="go-val2" style="color:#00ff88">${blocked}</div>
+        </div>
+        <div>
+          <div class="go-label">WAVES SURVIVED</div>
+          <div class="go-val2">${wave}</div>
+        </div>
+        <div>
+          <div class="go-label">LEVEL</div>
+          <div class="go-val2" style="color:${currentLevel==='easy'?'#00ff88':currentLevel==='medium'?'#ffaa00':'#ff3333'}">${currentLevel.toUpperCase()}</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:#334;margin-bottom:16px">Security incident logged. All endpoints compromised.</p>
+    <button class="restart-btn" onclick="showMenu()">RETURN TO MENU</button>
+  `;
+        }
+
+        function showMenu() {
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+    <div class="overlay-title" style="color:#00ff88">HUMAN FIREWALL</div>
+    <div class="overlay-sub">NETWORK DEFENSE SYSTEM v2.0</div>
+    <div class="level-select">
+      <button class="lvl-btn easy"   onclick="startGame('easy')">EASY</button>
+      <button class="lvl-btn medium" onclick="startGame('medium')">MEDIUM</button>
+      <button class="lvl-btn hard"   onclick="startGame('hard')">HARD</button>
+    </div>
+    <div class="instructions">
+      Click <span class="r">RED THREATS</span> to drop malicious packets.<br>
+      Let <span class="g">GREEN SAFE</span> packets pass to score.<br>
+      <span class="y">YELLOW SUSPICIOUS</span> — click twice to inspect.<br>
+      If a threat reaches the server, health drops.<br>
+      Health = 0 → <span class="r">NETWORK COMPROMISED</span>
+    </div>
+  `;
+            // re-bind inline styles for spans
+            overlay.querySelectorAll('.r').forEach(e => e.style.color = '#ff4444');
+            overlay.querySelectorAll('.g').forEach(e => e.style.color = '#00ff88');
+            overlay.querySelectorAll('.y').forEach(e => e.style.color = '#ffaa00');
+        }
+    </script>
+</body>
+
+</html>
