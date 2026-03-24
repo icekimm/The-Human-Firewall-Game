@@ -1,0 +1,264 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap');
+  #hfw-root { background: #0a0a0a; min-height: 520px; font-family: 'Share Tech Mono', monospace; color: #e0e0e0; user-select: none; overflow: hidden; position: relative; }
+  #hfw-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 8px; border-bottom: 2px solid #222; }
+  #hfw-title { font-family: 'Orbitron', monospace; font-size: 15px; font-weight: 900; color: #fff; letter-spacing: 2px; }
+  .hfw-stat { font-size: 13px; color: #888; }
+  .hfw-stat span { color: #fff; font-size: 16px; font-weight: 700; }
+  #hfw-health-bar { height: 4px; background: #1a1a1a; }
+  #hfw-health-fill { height: 100%; background: #00ff88; transition: width 0.3s, background 0.3s; }
+  #hfw-arena { position: relative; width: 100%; height: 380px; overflow: hidden; background: #0d0d0d; cursor: crosshair; }
+  .hfw-lane { position: absolute; left: 0; right: 0; border-bottom: 1px solid #1a1a1a; }
+  #hfw-server { position: absolute; right: 0; top: 0; bottom: 0; width: 52px; background: #111; border-left: 3px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; z-index: 5; }
+  #hfw-server-icon { width: 28px; height: 28px; }
+  #hfw-server-label { font-size: 8px; color: #555; letter-spacing: 1px; text-align: center; }
+  #hfw-internet { position: absolute; left: 0; top: 0; bottom: 0; width: 48px; background: #0d0d0d; border-right: 2px dashed #1e1e1e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; }
+  #hfw-internet-label { font-size: 7px; color: #444; letter-spacing: 1px; writing-mode: vertical-rl; }
+  #hfw-fw { position: absolute; left: 170px; top: 0; bottom: 0; width: 6px; background: #1e3a5f; border-left: 2px solid #2a5fa8; border-right: 2px solid #2a5fa8; z-index: 5; }
+  #hfw-fw-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-90deg); white-space: nowrap; font-size: 7px; color: #2a5fa8; letter-spacing: 2px; }
+  #hfw-log { padding: 6px 16px; height: 56px; overflow: hidden; display: flex; flex-direction: column-reverse; gap: 2px; border-top: 1px solid #1a1a1a; background: #080808; }
+  .hfw-log-entry { font-size: 10px; color: #555; animation: fadeIn 0.2s; }
+  .hfw-log-entry.ok { color: #00aa55; }
+  .hfw-log-entry.threat { color: #cc3333; }
+  .hfw-log-entry.warn { color: #cc8800; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  #hfw-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
+  #hfw-overlay h2 { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900; margin: 0 0 8px; }
+  #hfw-overlay p { font-size: 12px; color: #888; margin: 0 0 20px; text-align: center; max-width: 320px; line-height: 1.6; }
+  #hfw-overlay button { font-family: 'Share Tech Mono', monospace; background: transparent; border: 2px solid #fff; color: #fff; font-size: 13px; padding: 10px 28px; cursor: pointer; letter-spacing: 2px; transition: background 0.15s; }
+  #hfw-overlay button:hover { background: #fff; color: #000; }
+  .hfw-pkt { position: absolute; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; cursor: crosshair; transition: box-shadow 0.1s; z-index: 10; }
+  .hfw-pkt:hover { filter: brightness(1.3); }
+  .hfw-pkt.safe { background: #0d2d1a; border: 2px solid #00ff88; color: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.15); }
+  .hfw-pkt.threat { background: #2d0d0d; border: 2px solid #ff3333; color: #ff3333; box-shadow: 0 0 6px rgba(255,51,51,0.2); }
+  .hfw-pkt.suspicious { background: #2d1f00; border: 2px solid #ffaa00; color: #ffaa00; box-shadow: 0 0 6px rgba(255,170,0,0.15); }
+  .hfw-burst { position: absolute; width: 50px; height: 50px; border-radius: 50%; animation: burst 0.35s ease-out forwards; pointer-events: none; z-index: 20; }
+  @keyframes burst { 0% { opacity: 1; transform: scale(0.2); } 100% { opacity: 0; transform: scale(1.8); } }
+  .hfw-burst.threat { background: radial-gradient(circle, rgba(255,51,51,0.6), transparent); }
+  .hfw-burst.miss { background: radial-gradient(circle, rgba(255,170,0,0.5), transparent); }
+  .hfw-breach { animation: breach 0.5s; }
+  @keyframes breach { 0%,100% { filter: none; } 50% { filter: brightness(3) saturate(0) sepia(1) hue-rotate(-30deg); } }
+</style>
+
+<div id="hfw-root">
+  <div id="hfw-health-bar"><div id="hfw-health-fill" style="width:100%"></div></div>
+  <div id="hfw-header">
+    <div id="hfw-title">HUMAN FIREWALL v2.0</div>
+    <div class="hfw-stat">SCORE <span id="hfw-score">0</span></div>
+    <div class="hfw-stat">HEALTH <span id="hfw-hp">100</span>%</div>
+    <div class="hfw-stat">WAVE <span id="hfw-wave">1</span></div>
+  </div>
+
+  <div id="hfw-arena" id="hfw-arena">
+    <div id="hfw-internet"><div id="hfw-internet-label">INTERNET</div></div>
+    <div id="hfw-fw"><div id="hfw-fw-label">FIREWALL</div></div>
+    <div id="hfw-server">
+      <svg id="hfw-server-icon" viewBox="0 0 28 28" fill="none">
+        <rect x="2" y="4" width="24" height="7" rx="2" fill="#1a1a2e" stroke="#2a5fa8" stroke-width="1.5"/>
+        <circle cx="22" cy="7.5" r="1.5" fill="#00ff88"/>
+        <rect x="2" y="13" width="24" height="7" rx="2" fill="#1a1a2e" stroke="#2a5fa8" stroke-width="1.5"/>
+        <circle cx="22" cy="16.5" r="1.5" fill="#00ff88"/>
+        <rect x="2" y="22" width="24" height="4" rx="1.5" fill="#111" stroke="#333" stroke-width="1"/>
+      </svg>
+      <div id="hfw-server-label">SERVER<br>PROTECTED</div>
+    </div>
+  </div>
+
+  <div id="hfw-log"></div>
+
+  <div id="hfw-overlay">
+    <h2 style="color:#00ff88">FIREWALL ACTIVE</h2>
+    <p>Click <span style="color:#ff3333">RED threats</span> to drop them before they reach the server.<br>Let <span style="color:#00ff88">GREEN safe</span> packets pass through.<br><span style="color:#ffaa00">YELLOW suspicious</span> packets — click to inspect.</p>
+    <button onclick="startGame()">INITIALIZE DEFENSE</button>
+  </div>
+</div>
+
+<script>
+const arena = document.getElementById('hfw-arena');
+const overlay = document.getElementById('hfw-overlay');
+const scoreEl = document.getElementById('hfw-score');
+const hpEl = document.getElementById('hfw-hp');
+const waveEl = document.getElementById('hfw-wave');
+const hpFill = document.getElementById('hfw-health-fill');
+const logEl = document.getElementById('hfw-log');
+
+let packets = [], score = 0, health = 100, wave = 1, running = false;
+let spawnTimer, waveTimer, raf;
+let suspiciousHits = {};
+const ARENA_W = () => arena.offsetWidth;
+const ARENA_H = () => arena.offsetHeight;
+const SERVER_X = () => ARENA_W() - 55;
+const START_X = 55;
+
+const LOG_MSGS = {
+  safe: ['ACK handshake verified', 'HTTPS traffic — authorized', 'DNS query — clean', 'TLS cert valid', 'HTTP GET — allowed'],
+  threat: ['MALICIOUS payload detected!', 'SQL injection attempt — BLOCKED', 'Port scan — DROP', 'DDoS burst blocked', 'Botnet C2 — DROPPED'],
+  breach: ['!! BREACH — threat reached server', '!! INTRUSION DETECTED', '!! PACKET SLIPPED THROUGH'],
+  miss: ['False positive — safe packet dropped', 'Authorized traffic intercepted'],
+  suspicious: ['Suspicious packet quarantined', 'Deep packet inspection triggered'],
+};
+
+function log(type, msg) {
+  const e = document.createElement('div');
+  e.className = 'hfw-log-entry ' + (type === 'threat' || type === 'breach' ? 'threat' : type === 'ok' ? 'ok' : 'warn');
+  const ts = new Date().toISOString().substr(11,8);
+  e.textContent = `[${ts}] ${msg || LOG_MSGS[type][Math.floor(Math.random()*LOG_MSGS[type].length)]}`;
+  logEl.prepend(e);
+  while (logEl.children.length > 5) logEl.removeChild(logEl.lastChild);
+}
+
+function burst(x, y, type) {
+  const b = document.createElement('div');
+  b.className = 'hfw-burst ' + type;
+  b.style.left = (x - 25) + 'px';
+  b.style.top = (y - 25) + 'px';
+  arena.appendChild(b);
+  setTimeout(() => b.remove(), 400);
+}
+
+function flashArena() {
+  document.getElementById('hfw-root').classList.add('hfw-breach');
+  setTimeout(() => document.getElementById('hfw-root').classList.remove('hfw-breach'), 500);
+}
+
+function updateHPBar() {
+  hpFill.style.width = health + '%';
+  hpFill.style.background = health > 60 ? '#00ff88' : health > 30 ? '#ffaa00' : '#ff3333';
+}
+
+function spawnPacket() {
+  if (!running) return;
+  const types = ['safe','safe','safe','threat','threat', wave >= 2 ? 'suspicious' : 'safe'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  const labels = { safe: ['HTTP','DNS','TLS','ACK','HTTPS'], threat: ['SYN','DDOS','EXEC','ROOT','BOMB'], suspicious: ['???','UNK','????','SCAN'] };
+  const speeds = { safe: 0.9 + wave*0.18, threat: 1.2 + wave*0.22, suspicious: 0.7 + wave*0.15 };
+
+  const el = document.createElement('div');
+  el.className = 'hfw-pkt ' + type;
+  const h = 34, w = 52;
+  const topY = 10 + Math.random() * (ARENA_H() - h - 20);
+  el.style.cssText = `width:${w}px;height:${h}px;left:${START_X}px;top:${topY}px;`;
+  el.textContent = labels[type][Math.floor(Math.random()*labels[type].length)];
+  arena.appendChild(el);
+
+  const pkt = { el, type, x: START_X, speed: speeds[type], y: topY, id: Date.now() + Math.random(), hits: 0 };
+  packets.push(pkt);
+
+  el.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    if (!running) return;
+    if (pkt.type === 'threat') {
+      score += 15 + wave * 2;
+      scoreEl.textContent = score;
+      burst(pkt.x + w/2, pkt.y + h/2, 'threat');
+      log('threat');
+      removePkt(pkt);
+    } else if (pkt.type === 'suspicious') {
+      pkt.hits++;
+      if (pkt.hits >= 2) {
+        score += 8;
+        scoreEl.textContent = score;
+        burst(pkt.x + w/2, pkt.y + h/2, 'threat');
+        log('suspicious');
+        removePkt(pkt);
+      } else {
+        el.style.opacity = '0.5';
+      }
+    } else {
+      health = Math.max(0, health - 8);
+      updateHPBar();
+      hpEl.textContent = health;
+      burst(pkt.x + w/2, pkt.y + h/2, 'miss');
+      log('miss');
+      flashArena();
+      removePkt(pkt);
+      if (health <= 0) gameOver();
+    }
+  });
+}
+
+function removePkt(pkt) {
+  packets = packets.filter(p => p.id !== pkt.id);
+  pkt.el.remove();
+}
+
+function tick() {
+  if (!running) return;
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const p = packets[i];
+    p.x += p.speed;
+    p.el.style.left = p.x + 'px';
+    if (p.x >= SERVER_X()) {
+      if (p.type === 'threat') {
+        health = Math.max(0, health - 15);
+        updateHPBar();
+        hpEl.textContent = health;
+        log('breach');
+        flashArena();
+        removePkt(p);
+        if (health <= 0) { gameOver(); return; }
+      } else if (p.type === 'suspicious') {
+        health = Math.max(0, health - 5);
+        updateHPBar();
+        hpEl.textContent = health;
+        removePkt(p);
+      } else {
+        score += 3;
+        scoreEl.textContent = score;
+        log('safe');
+        removePkt(p);
+      }
+    }
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+function startGame() {
+  packets.forEach(p => p.el.remove());
+  packets = []; score = 0; health = 100; wave = 1; running = true;
+  scoreEl.textContent = 0; hpEl.textContent = 100; waveEl.textContent = 1;
+  updateHPBar();
+  overlay.style.display = 'none';
+  logEl.innerHTML = '';
+  log('ok', 'Firewall initialized — defense active');
+
+  let spawnInterval = 1600;
+  spawnTimer = setInterval(() => { if (running) spawnPacket(); }, spawnInterval);
+
+  waveTimer = setInterval(() => {
+    if (!running) return;
+    wave++;
+    waveEl.textContent = wave;
+    clearInterval(spawnTimer);
+    spawnInterval = Math.max(700, 1600 - (wave - 1) * 150);
+    spawnTimer = setInterval(() => { if (running) spawnPacket(); }, spawnInterval);
+    log('warn', `>> WAVE ${wave} — threat intensity increasing`);
+  }, 18000);
+
+  raf = requestAnimationFrame(tick);
+}
+
+function gameOver() {
+  running = false;
+  clearInterval(spawnTimer);
+  clearInterval(waveTimer);
+  cancelAnimationFrame(raf);
+  packets.forEach(p => p.el.remove());
+  packets = [];
+
+  overlay.innerHTML = `
+    <h2 style="color:#ff3333;font-family:'Orbitron',monospace;font-size:20px;margin:0 0 6px">YOUR NETWORK IS ATTACKED</h2>
+    <div style="font-size:11px;color:#ff3333;letter-spacing:3px;margin-bottom:16px">FIREWALL BREACHED</div>
+    <div style="border:1px solid #2a2a2a;padding:16px 32px;margin-bottom:20px;background:#0d0d0d;font-size:13px;line-height:2;text-align:center">
+      <div style="color:#888">FINAL SCORE</div>
+      <div style="font-family:'Orbitron',monospace;font-size:28px;color:#fff;font-weight:900">${score}</div>
+      <div style="color:#888">WAVES SURVIVED</div>
+      <div style="font-family:'Orbitron',monospace;font-size:20px;color:#ffaa00">${wave}</div>
+    </div>
+    <p style="color:#666;font-size:11px;margin-bottom:20px">Security incident logged. All systems compromised.</p>
+    <button onclick="startGame()" style="font-family:'Share Tech Mono',monospace;background:transparent;border:2px solid #ff3333;color:#ff3333;font-size:13px;padding:10px 28px;cursor:pointer;letter-spacing:2px">REINITIALIZE DEFENSE</button>
+  `;
+  overlay.style.display = 'flex';
+}
+</script>
